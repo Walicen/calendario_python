@@ -2,11 +2,13 @@ import time
 from datetime import date
 import cx_Oracle as oracle
 
-conn = oracle.connect('tasy/redcross@DBTESTE')
+#'usuario/senha@nomeDaAcessoTNS'
+STRING_CONEXAO = "'usuario/senha@nomeDaAcessoTNS'"
+
+conn = oracle.connect('STRING_CONEXAO')
 conn.autocommit = True
 year_begin = 2000
 year_end = 2050
-datas = []
 
 
 """
@@ -60,7 +62,7 @@ class Calendario():
 
 
 def gera_datas():
-
+    datas = []
     for ano in range(year_begin, year_end+1):
         for mes in range(1,13):
             for dia in range(1,32):
@@ -84,33 +86,18 @@ def gera_datas():
                                    '{:02d}/{}'.format(da.month,da.year)
                                    )
                 datas.append(calen.to_tuple())
+    return datas
                
-                
-def teste_insert(conexao):
-
-    cur = conexao.cursor()
-
-    rows = [ (1, "First" ), (2, "Second" ),
-         (3, "Third" ), (4, "Fourth" ),
-         (5, "Fifth" ), (6, "Sixth" ),
-         (7, "Seventh" ) ]
-
-    cur.executemany("insert into mytab(id, data) values (:1, :2)", rows)
-    
-    cur2 = conexao.cursor()
-    cur2.execute('select * from mytab')
-    res = cur2.fetchall()
-    print(res)
 
 
-def popular_tabela(conexao, calendario=''):
+def popular_tabela(conexao, calendario):
     cursor = conexao.cursor()
     
     query = ("insert into hcv_calendario(DT_REFERENCIA,NOME_DIA,NOME_MES,NOME_MES_ANO,NUMERO_ANO,NUMERO_DIA,NUMERO_MES,NUMERO_MES_ANO)"
              "values (:1, :2, :3, :4, :5, :6, :7, :8)")
     print(query)
     cursor.executemany("insert into hcv_calendario(DT_REFERENCIA,NOME_DIA,NOME_MES,NOME_MES_ANO,NUMERO_ANO,NUMERO_DIA,NUMERO_MES,NUMERO_MES_ANO) " \
-                       "values (:1, :2, :3, :4, :5, :6, :7, :8)", datas)
+                       "values (:1, :2, :3, :4, :5, :6, :7, :8)", calendario)
     
     
     
@@ -119,10 +106,9 @@ def is_bissexto(ano):
 
 
 if __name__ == "__main__":
-    gera_datas()
-    print(datas)
-    #popular_tabela(conn)
-    # teste_insert(conn)
+    datas = gera_datas()
+    popular_tabela(conn, datas)
+    
     
     
  
