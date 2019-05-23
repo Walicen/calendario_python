@@ -2,13 +2,16 @@ import time
 from datetime import date
 import cx_Oracle as oracle
 
-#'usuario/senha@nomeDaAcessoTNS'
-STRING_CONEXAO = "'usuario/senha@nomeDaAcessoTNS'"
 
-conn = oracle.connect('STRING_CONEXAO')
-conn.autocommit = True
 year_begin = 2000
 year_end = 2050
+
+
+def get_con(acessoBanco):
+    conn = oracle.connect('tasy/redcross@DBTESTE')
+    conn.autocommit = True
+    return conn
+
 
 
 """
@@ -31,11 +34,13 @@ year_end = 2050
 
 class Calendario():
 
-    weeks_days = ('Domingo', 'Segunda-feira', 'Terca-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sabado')
-    short_name_month = ('JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ')
-    name_month = ('JANEIRO', 'FEVEREIRO', 'MARCO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO')
+    weeks_days = ('Segunda-feira', 'Terca-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sabado', 'Domingo')
+    short_name_month = ('Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez')
+    name_month = ('Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro')
+    trimestre = ('1º Tri', '2º Tri', '3º Tri', '4º Tri')
     
-    def __init__(self, dt_referencia, nome_dia, nome_mes, nome_mes_ano, numero_ano, numero_dia, numero_mes, numero_mes_ano):
+    def __init__(self, dt_referencia, nome_dia, nome_mes, nome_mes_ano, numero_ano, numero_dia, 
+                  numero_mes, numero_mes_ano, trimestre, feriado, numero_dia_semana, numero_semana):
         """ 01/01/2019 """
         self.dt_referencia = dt_referencia
         """ Segunda-Feira """
@@ -52,13 +57,24 @@ class Calendario():
         self.numero_mes = numero_mes
         """ 01/2019 """
         self.numero_mes_ano = numero_mes_ano
+        """ 1º Tri/19 """
+        self.trimestre = trimestre
+        """ S ou N """
+        self.feriado = feriado
+        """  01 """
+        self.numero_dia_semana = numero_dia_semana
+        """ 05 """
+        self.numero_semana = numero_semana
 
     def __str__(self):
-        return f'{self.dt_referencia} - {self.nome_dia} - {self.nome_mes} - {self.nome_mes_ano} - {self.numero_ano} - {self.numero_dia} - {self.numero_mes} - {self.numero_mes_ano}'
+        return f'{self.dt_referencia} - {self.nome_dia} - {self.nome_mes} - {self.nome_mes_ano}'\
+        f'- {self.numero_ano} - {self.numero_dia} - {self.numero_mes} - {self.numero_mes_ano}'\
+        f' - {self.trimestre} - {self.feriado} - {self.numero_dia_semana} - {self.numero_semana}'
 
     
     def to_tuple(self):
-        return (self.dt_referencia, self.nome_dia, self.nome_mes, self.nome_mes_ano, self.numero_ano, self.numero_dia, self.numero_mes, self.numero_mes_ano)
+        return (self.dt_referencia, self.nome_dia, self.nome_mes, self.nome_mes_ano, self.numero_ano, self.numero_dia,
+        self.numero_mes, self.numero_mes_ano, self.trimestre, self.feriado, self.numero_dia_semana, self.numero_semana)
 
 
 def gera_datas():
@@ -83,21 +99,34 @@ def gera_datas():
                                    da.year,
                                    int('{:02d}'.format(da.day)),
                                    int('{:02d}'.format(da.month)),
-                                   '{:02d}/{}'.format(da.month,da.year)
+                                   '{:02d}/{}'.format(da.month,da.year),
+                                   '{}/{}'.format(Calendario.trimestre[trimestre(da.month)],da.strftime("%y")),
+                                   'N',
+                                   dia_semana(da.weekday()),
+                                   int(da.strftime("%V"))
                                    )
                 datas.append(calen.to_tuple())
     return datas
-               
 
+def dia_semana(n):
+    if n == 6:
+        return 1
+    else:
+        return n+2
+
+def trimestre(mes):
+    if mes in (1, 2, 3): return 0
+    elif mes in (4, 5, 6): return 1
+    elif mes in (7, 8, 9): return 2
+    else: return 3
 
 def popular_tabela(conexao, calendario):
-    cursor = conexao.cursor()
-    
-    query = ("insert into hcv_calendario(DT_REFERENCIA,NOME_DIA,NOME_MES,NOME_MES_ANO,NUMERO_ANO,NUMERO_DIA,NUMERO_MES,NUMERO_MES_ANO)"
-             "values (:1, :2, :3, :4, :5, :6, :7, :8)")
-    print(query)
-    cursor.executemany("insert into hcv_calendario(DT_REFERENCIA,NOME_DIA,NOME_MES,NOME_MES_ANO,NUMERO_ANO,NUMERO_DIA,NUMERO_MES,NUMERO_MES_ANO) " \
-                       "values (:1, :2, :3, :4, :5, :6, :7, :8)", calendario)
+    if conexao and calendario:
+        cursor = conexao.cursor()
+        cursor.executemany("""insert into hcv_calendario(DT_REFERENCIA,NOME_DIA,NOME_MES,NOME_MES_ANO,NUMERO_ANO,NUMERO_DIA,NUMERO_MES,NUMERO_MES_ANO, TRIMESTRE, FERIADO, NUMERO_DIA_SEMANA, NUMERO_SEMANA) 
+                       values (:1, :2, :3, :4, :5, :6, :7, :8, :9, :10, :11, :12)""", calendario)
+    else:
+        print("Erro com a conexão!")
     
     
     
@@ -106,9 +135,16 @@ def is_bissexto(ano):
 
 
 if __name__ == "__main__":
+    #'usuario/senha@nomeDaAcessoTNS'
+    STRING_CONEXAO = "usuario/senha@nomeDaAcessoTNS"
+    conn = get_con(STRING_CONEXAO)
     datas = gera_datas()
     popular_tabela(conn, datas)
+    # print(datas[7084])
+    # print(datas[7083])
+    # print(datas[7082])
+    # print(datas[7081])
+    # print(datas[7080])
+    # print(datas[7079])
+    # print(datas[7078])
     
-    
-    
- 
