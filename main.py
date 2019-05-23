@@ -8,7 +8,7 @@ year_end = 2050
 
 
 def get_con(acessoBanco):
-    conn = oracle.connect('tasy/redcross@DBTESTE')
+    conn = oracle.connect(acessoBanco)
     conn.autocommit = True
     return conn
 
