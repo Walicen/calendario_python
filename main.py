@@ -1,6 +1,8 @@
 import time
 from datetime import date
 import cx_Oracle as oracle
+from requests import get
+from collections import namedtuple
 
 
 year_begin = 2000
@@ -134,17 +136,37 @@ def is_bissexto(ano):
     return ano % 4 == 0 and ano % 100 != 0 or ano % 400 == 0
 
 
+def busca_feriados(ano):
+    url = "https://api.calendario.com.br/?json=true"
+    token = "d2FsaWNlbi5kYWxhenVhbmFAY3J1enZlcm1lbGhhcHIuY29tLmJyJmhhc2g9OTcwOTY4NDk"
+    city = "4106902"
+    payload = {"ano": ano, "ibge": city, "token": token}
+    feriado = namedtuple('Feriado', 'date, name, type_code')
+    feriados =[]
+    try:
+        response = get(url, params=payload)
+        print(response.status_code)    
+        if response.status_code == 200:
+            for fer in response.json():
+                f = feriado(date=fer['date'], name=fer['name'], type_code=fer['type_code'])
+                feriados.append(f)
+        return feriados
+        
+    except Exception as err:
+        return f"Algum erro ao buscar os feriados!{err}"
+    
+    
+    
+
+
+
+
 if __name__ == "__main__":
     #'usuario/senha@nomeDaAcessoTNS'
-    STRING_CONEXAO = "usuario/senha@nomeDaAcessoTNS"
-    conn = get_con(STRING_CONEXAO)
-    datas = gera_datas()
-    popular_tabela(conn, datas)
-    # print(datas[7084])
-    # print(datas[7083])
-    # print(datas[7082])
-    # print(datas[7081])
-    # print(datas[7080])
-    # print(datas[7079])
-    # print(datas[7078])
+    # STRING_CONEXAO = "usuario/senha@nomeDaAcessoTNS"
+    # conn = get_con(STRING_CONEXAO)
+    # datas = gera_datas()
+    # popular_tabela(conn, datas)
+    feriados = busca_feriados("2019")
+    print([i for i in feriados if i.type_code == '4'])
     
