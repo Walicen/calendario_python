@@ -14,10 +14,10 @@ year_end = 2050
 
 
 def get_con(acessoBanco):
-    conn = oracle.connect(acessoBanco)
-    conn.autocommit = True
-    return conn
-
+    #conn = oracle.connect(acessoBanco)
+    #conn.autocommit = True
+    #return conn
+    pass
 
 """
 1	Janeiro	  tem 31 dias
@@ -145,24 +145,34 @@ def is_bissexto(ano):
     return ano % 4 == 0 and ano % 100 != 0 or ano % 400 == 0
 
 
+# TODO separar em outro arquivo
+class Feriado:
+    def __init__(self, nome: str, tipo: str, data):
+        self.nome = nome
+        self.data = data
+        self.tipo = tipo
+
+    def __str__(self):
+        return f'{self.nome} na data {self.data} do tipo {self.tipo}'
+
+    def __repr__(self):
+        return f'{self.nome} na data {self.data} do tipo {self.tipo}'
+
+
 def busca_feriados(ano, url=URL, token=TOKEN, ibge=CODIGO_CIDADE):
     # preparacao
     payload = {"ano": ano, "ibge": ibge, "token": token}
-    feriado = namedtuple('Feriado', 'date, name, type_code')  # TODO criar Classe
-    feriados = []
-
     try:
         response = get(url, params=payload)
         if response.status_code == 200:
-            feriados = [feriado(date=fer['date'], name=fer['name'], type_code=fer['type_code']) for fer in response.json()]
-        return feriados
+            return [Feriado(fer['name'], fer['type_code'], fer['date']) for fer in response.json()]
 
     except Exception as err:
         return f"Algum erro ao buscar os feriados!{err}"
 
 
 def apresentacao(feriados):
-    return '\n'.join((" ".join(feriado) for feriado in feriados if feriado.type_code == '4'))
+    return '\n'.join(feriado.__str__() for feriado in feriados if feriado.tipo == '4')
 
 
 if __name__ == "__main__":
