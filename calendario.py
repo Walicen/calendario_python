@@ -1,6 +1,7 @@
 import time
-from datetime import date
+from datetime import date, timedelta
 from requests import get
+import locale
 from collections import namedtuple
 
 CODIGO_CIDADE = "4106902"
@@ -9,15 +10,16 @@ TOKEN = "d2FsaWNlbi5kYWxhenVhbmFAY3J1enZlcm1lbGhhcHIuY29tLmJyJmhhc2g9OTcwOTY4NDk
 
 URL = "https://api.calendario.com.br/?json=true"
 
-year_begin = 2000
-year_end = 2050
+INICIO = 2000
+FIM = 2050
 
 
 def get_con(acessoBanco):
-    #conn = oracle.connect(acessoBanco)
-    #conn.autocommit = True
-    #return conn
+    # conn = oracle.connect(acessoBanco)
+    # conn.autocommit = True
+    # return conn
     pass
+
 
 """
 1	Janeiro	  tem 31 dias
@@ -40,9 +42,8 @@ class Calendario():
     weeks_days = ('Segunda-feira', 'Terca-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sabado', 'Domingo')
     short_name_month = ('Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez')
     name_month = (
-    'Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro',
-    'Dezembro')
-    trimestre = ('1º Tri', '2º Tri', '3º Tri', '4º Tri')
+        'Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro',
+        'Dezembro')
 
     def __init__(self, dt_referencia, nome_dia, nome_mes, nome_mes_ano, numero_ano, numero_dia,
                  numero_mes, numero_mes_ano, trimestre, feriado, numero_dia_semana, numero_semana):
@@ -82,35 +83,29 @@ class Calendario():
                 self.numero_semana)
 
 
-def gera_datas():
+def gera_datas(ano_inicio=INICIO, ano_fim=FIM):
+    # Preparacao
+    inicio = date(year=ano_inicio, month=1, day=1)
+    fim = date(year=ano_fim, month=12, day=31)
     datas = []
-    for ano in range(year_begin, year_end + 1):
-        for mes in range(1, 13):
-            for dia in range(1, 32):
-                if mes == 2 and dia > 28:
-                    if is_bissexto(ano):
-                        if dia > 29:
-                            break
-                    else:
-                        break
-                if mes in (4, 6, 9, 11) and dia > 30:
-                    break
 
-                da = date(ano, month=mes, day=dia)
-                calen = Calendario(da.strftime('%d/%m/%Y'),
-                                   Calendario.weeks_days[da.weekday()],
-                                   Calendario.name_month[da.month - 1],
-                                   f'{Calendario.short_name_month[da.month - 1]}/{da.year}',
-                                   da.year,
-                                   int('{:02d}'.format(da.day)),
-                                   int('{:02d}'.format(da.month)),
-                                   '{:02d}/{}'.format(da.month, da.year),
-                                   '{}/{}'.format(Calendario.trimestre[trimestre(da.month)], da.strftime("%y")),
-                                   'N',
-                                   dia_semana(da.weekday()),
-                                   int(da.strftime("%V"))
-                                   )
-                datas.append(calen.to_tuple())
+    while inicio <= fim:
+        data = Calendario(inicio.strftime('%d/%m/%Y'),
+                          Calendario.weeks_days[inicio.weekday()],
+                          Calendario.name_month[inicio.month - 1],
+                          f'{Calendario.short_name_month[inicio.month - 1]}/{inicio.year}',
+                          inicio.year,
+                          int('{:02d}'.format(inicio.day)),
+                          int('{:02d}'.format(inicio.month)),
+                          '{:02d}/{}'.format(inicio.month, inicio.year),
+                          f'{(inicio.month -1) // 3 +1}º Tri/{inicio.strftime("%y")}',
+                          'N',
+                          dia_semana(inicio.weekday()),
+                          int(inicio.strftime("%V"))
+                          )
+        datas.append(data)
+        inicio += timedelta(days=1)
+
     return datas
 
 
@@ -120,18 +115,6 @@ def dia_semana(n):
     else:
         return n + 2
 
-
-def trimestre(mes):
-    if mes in (1, 2, 3):
-        return 0
-    elif mes in (4, 5, 6):
-        return 1
-    elif mes in (7, 8, 9):
-        return 2
-    else:
-        return 3
-
-
 def popular_tabela(conexao, calendario):
     if conexao and calendario:
         cursor = conexao.cursor()
@@ -139,11 +122,6 @@ def popular_tabela(conexao, calendario):
                        values (:1, :2, :3, :4, :5, :6, :7, :8, :9, :10, :11, :12)""", calendario)
     else:
         print("Erro com a conexão!")
-
-
-def is_bissexto(ano):
-    return ano % 4 == 0 and ano % 100 != 0 or ano % 400 == 0
-
 
 # TODO separar em outro arquivo
 class Feriado:
@@ -179,9 +157,10 @@ if __name__ == "__main__":
     # 'usuario/senha@nomeDaAcessoTNS'
     # STRING_CONEXAO = "usuario/senha@nomeDaAcessoTNS"
     # conn = get_con(STRING_CONEXAO)
-    # datas = gera_datas()
+    datas = gera_datas()
     # popular_tabela(conn, datas)
-
     feriados = busca_feriados("2021")
+
+    print(datas)
 
     print(apresentacao(feriados))
