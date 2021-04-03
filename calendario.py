@@ -1,8 +1,12 @@
 import time
 from datetime import date, timedelta
 from requests import get
+
 import locale
-from collections import namedtuple
+
+from models import Feriado, Calendario
+
+locale.setlocale(locale.LC_TIME, "pt_BR")
 
 CODIGO_CIDADE = "4106902"
 
@@ -14,86 +18,33 @@ INICIO = 2000
 FIM = 2050
 
 
-def get_con(acessoBanco):
-    # conn = oracle.connect(acessoBanco)
-    # conn.autocommit = True
-    # return conn
-    pass
-
-
-"""
-1	Janeiro	  tem 31 dias
-2	Fevereiro tem 28 dias (29 dias nos anos bissextos)
-3	Março	  tem 31 dias
-4	Abril	  tem 30 dias
-5	Maio	  tem 31 dias
-6	Junho	  tem 30 dias
-7	Julho	  tem 31 dias
-8	Agosto	  tem 31 dias
-9	Setembro  tem 30 dias
-10	Outubro	  tem 31 dias
-11	Novembro  tem 30 dias
-12	Dezembro  tem 31 dias
-
-"""
-
-
-class Calendario():
-    weeks_days = ('Segunda-feira', 'Terca-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sabado', 'Domingo')
-    short_name_month = ('Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez')
-    name_month = (
-        'Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro',
-        'Dezembro')
-
-    def __init__(self, dt_referencia, nome_dia, nome_mes, nome_mes_ano, numero_ano, numero_dia,
-                 numero_mes, numero_mes_ano, trimestre, feriado, numero_dia_semana, numero_semana):
-        """ 01/01/2019 """
-        self.dt_referencia = dt_referencia
-        """ Segunda-Feira """
-        self.nome_dia = nome_dia
-        """ Janeiro """
-        self.nome_mes = nome_mes
-        """ Jan/2019 """
-        self.nome_mes_ano = nome_mes_ano
-        """ 2019 """
-        self.numero_ano = numero_ano
-        """ 02 """
-        self.numero_dia = numero_dia
-        """ 01 """
-        self.numero_mes = numero_mes
-        """ 01/2019 """
-        self.numero_mes_ano = numero_mes_ano
-        """ 1º Tri/19 """
-        self.trimestre = trimestre
-        """ S ou N """
-        self.feriado = feriado
-        """  01 """
-        self.numero_dia_semana = numero_dia_semana
-        """ 05 """
-        self.numero_semana = numero_semana
-
-    def __str__(self):
-        return f'{self.dt_referencia} - {self.nome_dia} - {self.nome_mes} - {self.nome_mes_ano}' \
-               f'- {self.numero_ano} - {self.numero_dia} - {self.numero_mes} - {self.numero_mes_ano}' \
-               f' - {self.trimestre} - {self.feriado} - {self.numero_dia_semana} - {self.numero_semana}'
-
-    def to_tuple(self):
-        return (self.dt_referencia, self.nome_dia, self.nome_mes, self.nome_mes_ano, self.numero_ano, self.numero_dia,
-                self.numero_mes, self.numero_mes_ano, self.trimestre, self.feriado, self.numero_dia_semana,
-                self.numero_semana)
-
-
 def gera_datas(ano_inicio=INICIO, ano_fim=FIM):
+    """
+    1	Janeiro	  tem 31 dias
+    2	Fevereiro tem 28 dias (29 dias nos anos bissextos)
+    3	Março	  tem 31 dias
+    4	Abril	  tem 30 dias
+    5	Maio	  tem 31 dias
+    6	Junho	  tem 30 dias
+    7	Julho	  tem 31 dias
+    8	Agosto	  tem 31 dias
+    9	Setembro  tem 30 dias
+    10	Outubro	  tem 31 dias
+    11	Novembro  tem 30 dias
+    12	Dezembro  tem 31 dias
+
+    """
     # Preparacao
     inicio = date(year=ano_inicio, month=1, day=1)
     fim = date(year=ano_fim, month=12, day=31)
     datas = []
 
     while inicio <= fim:
+        print(inicio.strftime("%a, %d %b %B %Y %H:%M:%S"))
         data = Calendario(inicio.strftime('%d/%m/%Y'),
-                          Calendario.weeks_days[inicio.weekday()],
-                          Calendario.name_month[inicio.month - 1],
-                          f'{Calendario.short_name_month[inicio.month - 1]}/{inicio.year}',
+                          inicio.strftime('%A'),
+                          inicio.strftime('%B'),
+                          f'{inicio.strftime("%b")}/{inicio.year}',
                           inicio.year,
                           int('{:02d}'.format(inicio.day)),
                           int('{:02d}'.format(inicio.month)),
@@ -115,6 +66,7 @@ def dia_semana(n):
     else:
         return n + 2
 
+
 def popular_tabela(conexao, calendario):
     if conexao and calendario:
         cursor = conexao.cursor()
@@ -122,19 +74,6 @@ def popular_tabela(conexao, calendario):
                        values (:1, :2, :3, :4, :5, :6, :7, :8, :9, :10, :11, :12)""", calendario)
     else:
         print("Erro com a conexão!")
-
-# TODO separar em outro arquivo
-class Feriado:
-    def __init__(self, nome: str, tipo: str, data):
-        self.nome = nome
-        self.data = data
-        self.tipo = tipo
-
-    def __str__(self):
-        return f'{self.nome} na data {self.data} do tipo {self.tipo}'
-
-    def __repr__(self):
-        return f'{self.nome} na data {self.data} do tipo {self.tipo}'
 
 
 def busca_feriados(ano, url=URL, token=TOKEN, ibge=CODIGO_CIDADE):
@@ -154,13 +93,10 @@ def apresentacao(feriados):
 
 
 if __name__ == "__main__":
-    # 'usuario/senha@nomeDaAcessoTNS'
-    # STRING_CONEXAO = "usuario/senha@nomeDaAcessoTNS"
-    # conn = get_con(STRING_CONEXAO)
+
     datas = gera_datas()
     # popular_tabela(conn, datas)
     feriados = busca_feriados("2021")
 
     print(datas)
-
     print(apresentacao(feriados))
